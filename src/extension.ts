@@ -92,7 +92,7 @@ export function activate(context: vscode.ExtensionContext) {
     };
 
 	const vision = vscode.chat.createChatParticipant(VISION_PARTICIPANT_ID, handler);
-    vision.iconPath = vscode.Uri.joinPath(context.extensionUri, 'cat.jpeg');
+    vision.iconPath = vscode.Uri.joinPath(context.extensionUri, 'vscode-logo.png');
     // vision.followupProvider = {
     //     provideFollowups(result: ICatChatResult, context: vscode.ChatContext, token: vscode.CancellationToken) {
     //         return [{
@@ -124,6 +124,10 @@ export function activate(context: vscode.ExtensionContext) {
             kind: feedback.kind
         });
     }));
+
+
+	
+
 }
 
 function handleError(logger: vscode.TelemetryLogger, err: any, stream: vscode.ChatResponseStream): void {
