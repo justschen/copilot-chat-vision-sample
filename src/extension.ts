@@ -1,6 +1,9 @@
 import axios from 'axios';
+import * as dotenv from 'dotenv';
 import * as vscode from 'vscode';
 import { ChatVariablesCollection } from './chatVariablesCollective';
+
+dotenv.config();
 
 const VISION_PARTICIPANT_ID = 'chat-sample.vision';
 
@@ -11,7 +14,7 @@ interface IVisionChatResult extends vscode.ChatResult {
 }
 
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
-const OPENAI_API_KEY = 'OPEN AI KEY';
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 // Use gpt-4o since it is fast and high quality. gpt-3.5-turbo and gpt-4 are also available.
 const MODEL_SELECTOR: vscode.LanguageModelChatSelector = { vendor: 'copilot', family: 'gpt-4o' };

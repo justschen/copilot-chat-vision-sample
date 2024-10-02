@@ -26,9 +26,8 @@
 				"fullName": "Vision",
 				"name": "vision",
 				"description": "Attach an image to get started!",
-				"isSticky": false, 
-				"commands": [
-				]
+				"isSticky": false,
+				"commands": []
 			}
 		]
 	},
@@ -42,6 +41,7 @@
 	"dependencies": {
 		"@vscode/prompt-tsx": "^0.2.8-alpha",
 		"axios": "^1.7.7",
+		"dotenv": "^16.4.5",
 		"node-fetch": "^3.3.2"
 	},
 	"devDependencies": {
