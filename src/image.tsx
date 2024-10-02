@@ -7,10 +7,6 @@ import {
 import { ChatVariablesCollection } from './chatVariablesCollective';
 import { ChatReferenceBinaryData } from 'vscode';
 
-export interface PromptProps extends BasePromptElementProps {
-	userQuery: string;
-}
-
 export interface ChatVariablesAndQueryProps extends BasePromptElementProps {
 	query: string;
 	chatVariables: ChatVariablesCollection;
@@ -21,7 +17,7 @@ export interface ChatVariablesAndQueryProps extends BasePromptElementProps {
 	includeFilepath?: boolean;
 }
 
-export class PlayPrompt extends PromptElement<ChatVariablesAndQueryProps, void> {
+export class Image extends PromptElement<ChatVariablesAndQueryProps, void> {
 	async render(state: void, sizing: PromptSizing) {
 		const chatVariables = this.props.chatVariables;
 		const promptElements: PromptElement[] = [];
