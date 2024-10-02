@@ -1,6 +1,6 @@
 forked from https://github.com/microsoft/vscode-extension-samples
 
-Provide your own open api key!
+Provide your own open api key! Also make sure to set the hidden setting `"chat.experimental.imageAttachments": true`
 
 # Example Attachment Scenarios:
 1. Copy and Pasting an image from clipboard.
