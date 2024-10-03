@@ -2,10 +2,18 @@ import axios from 'axios';
 import * as dotenv from 'dotenv';
 import * as vscode from 'vscode';
 import { ChatVariablesCollection } from './chatVariablesCollective';
+import { AzureOpenAI } from "openai";  
+import { DefaultAzureCredential } from "@azure/identity";  
+import { Models } from 'openai/resources/models.mjs';
 
 dotenv.config();
 
 const VISION_PARTICIPANT_ID = 'chat-sample.vision';
+
+const endpoint = process.env["AZURE_ENDPOINT"] || "https://vscode-openai.openai.azure.com/";  
+const apiVersion = "2024-05-01-preview";  
+const deployment = "Gpt4"; // This must match your deployment name
+const AZURE_API_KEY = process.env["AZURE_API_KEY"];
 
 interface IVisionChatResult extends vscode.ChatResult {
     metadata: {
@@ -37,9 +45,11 @@ export function activate(context: vscode.ExtensionContext) {
 
 		let base64String = '';
         let mimeType = 'image/png';
+		const content: Array<{ type: 'text', text: string } | { type: 'image_url', image_url: { url: string } }> = [
+				{ type: 'text', text: request.prompt },
+			];
 
 			for (const { uniqueName: variableName, value: variableValue } of chatVariables) {
-
 				// URI in cases of drag and drop or from file already in the workspace
 				if (variableValue instanceof vscode.Uri) {
 					const fileExtension = variableValue.path.split('.').pop()?.toLowerCase();
@@ -59,22 +69,14 @@ export function activate(context: vscode.ExtensionContext) {
                     mimeType = variable.mimeType;
 					const buffer = await variable.data();
 					base64String = Buffer.from(buffer).toString('base64');
+					content.push({ type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64String}` } });
 				}
 			}
 
-		try {
-			// Prepare the request payload
-			const content = [
-					{ type: 'text', text: request.prompt },
-					{ type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64String}`}}
-				];
-				
+		try {	
 			const openAIRequest = {
 				model: 'gpt-4o', // Specify the OpenAI model you want to use
-				messages: [
-					{ role: 'system', content: 'You are an AI chat bot, etc, etc, etc.' },
-					{ role: 'user', content },
-				]
+				messages: [ { role: 'user', content },]
 			};
 
 			// Send the request to OpenAI
@@ -85,10 +87,34 @@ export function activate(context: vscode.ExtensionContext) {
 				}
 			});
 
-			// Stream the response
 			for (const choice of response.data.choices) {
 				stream.markdown(choice.message.content);
 			}
+
+			// Initialize the AzureOpenAI client with Entra ID (Azure AD) authentication
+			// const client = new AzureOpenAI({ endpoint, apiVersion, deployment, apiKey: AZURE_API_KEY});  
+		
+			// EXAMPLE OF USING AZURE OPENAI
+			// const result = await client.chat.completions.create({
+			// 	messages: [
+			// 		{ role: 'user', content: request.prompt },
+			// 		{ role: 'user', content: [{type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64String}`, detail: 'auto'}}] }
+			// 	],
+			// 	model: deployment, // Gpt4
+			// 	max_tokens: 8192,
+			// 	temperature: 0.7,
+			// 	top_p: 0.95,
+			// 	frequency_penalty: 0,
+			// 	presence_penalty: 0
+			// });
+
+			// for (const choice of result.choices) {
+			// 	if (choice.message.content) {
+			// 		stream.markdown(choice.message.content);
+			// 	}
+			// }	
+			
+	
 		} catch(err) {
 			handleError(logger, err, stream);
 		}
