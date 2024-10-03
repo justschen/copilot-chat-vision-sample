@@ -45,7 +45,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 		let base64String = '';
         let mimeType = 'image/png';
-		const content: Array<{ type: 'text', text: string } | { type: 'image_url', image_url: { url: string } }> = [
+		const content: Array<{ type: 'text', text: string } | { type: 'image_url', image_url: { url: string, detail?: string } }> = [
 				{ type: 'text', text: request.prompt },
 			];
 
@@ -69,7 +69,7 @@ export function activate(context: vscode.ExtensionContext) {
                     mimeType = variable.mimeType;
 					const buffer = await variable.data();
 					base64String = Buffer.from(buffer).toString('base64');
-					content.push({ type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64String}` } });
+					content.push({ type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64String}`} });
 				}
 			}
 
