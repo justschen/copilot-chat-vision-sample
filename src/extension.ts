@@ -29,6 +29,29 @@ const MODEL_SELECTOR: vscode.LanguageModelChatSelector = { vendor: 'copilot', fa
 
 export function activate(context: vscode.ExtensionContext) {
 
+	
+	  const disposable = vscode.commands.registerCommand('extension.showHtmlPreview', () => {
+        const panel = vscode.window.createWebviewPanel(
+            'htmlPreview', // Identifies the type of the webview. Used internally
+            'HTML Preview', // Title of the panel displayed to the user
+            vscode.ViewColumn.One, // Editor column to show the new webview panel in
+            {
+                enableScripts: true // Enable scripts in the webview
+            }
+        );
+
+        // Set the HTML content for the webview
+      	const editor = vscode.window.activeTextEditor;
+		if (editor) {
+			const htmlContent = editor.document.getText();
+			panel.webview.html = getWebviewContent(htmlContent);
+		} else {
+			vscode.window.showErrorMessage('No active text editor found.');
+		}
+    });
+
+    context.subscriptions.push(disposable);
+
     // Define a chat handler
     const handler: vscode.ChatRequestHandler = async (request: vscode.ChatRequest, context: vscode.ChatContext, stream: vscode.ChatResponseStream, token: vscode.CancellationToken): Promise<IVisionChatResult> => {
         // To talk to an LLM in your subcommand handler implementation, your
@@ -58,6 +81,7 @@ export function activate(context: vscode.ExtensionContext) {
 					if (fileExtension && imageExtensions.includes(fileExtension)) {
 						const fileData = await vscode.workspace.fs.readFile(variableValue);
 						base64String = Buffer.from(fileData).toString('base64');
+                        content.push({ type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64String}`} });
 					} else {
 						stream.markdown(`The file ${variableName} is not an image.`);
 						return { metadata: { command: '' } };
@@ -179,4 +203,119 @@ function handleError(logger: vscode.TelemetryLogger, err: any, stream: vscode.Ch
     }
 }
 
+function getWebviewContent(htmlContent: string): string {
+    return `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>HTML Preview</title>
+            <style>
+                body, html {
+                    margin: 0;
+                    padding: 0;
+                    height: 100%;
+                    width: 100%;
+                    position: relative;
+                    overflow: hidden;
+                }
+                .content {
+                    position: relative;
+                    z-index: 1;
+                }
+                .canvas-container {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    z-index: 2;
+                }
+                canvas {
+                    width: 100%;
+                    height: 100%;
+                    border: none;
+                }
+                #exportBtn {
+                    position: fixed;
+                    top: 10px;
+                    right: 10px;
+                    z-index: 9999; /* Make sure the button is always on top */
+                    padding: 10px 20px;
+                    background-color: #4CAF50;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                }
+                #exportBtn:hover {
+                    background-color: #45a049;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="content">
+                ${htmlContent}
+            </div>
+            <div class="canvas-container">
+                <canvas id="canvas"></canvas>
+            </div>
+            <button id="exportBtn">Export as Image</button>
+
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/4.5.0/fabric.min.js"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.5.0-beta4/html2canvas.min.js"></script>
+            <script>
+                const canvasElement = document.getElementById('canvas');
+                const canvas = new fabric.Canvas(canvasElement);
+
+                // Make canvas fill the screen and allow drawing
+                canvas.setWidth(window.innerWidth);
+                canvas.setHeight(window.innerHeight);
+                canvas.isDrawingMode = true;
+
+                // Adjust canvas size when window is resized
+                window.addEventListener('resize', () => {
+                    canvas.setWidth(window.innerWidth);
+                    canvas.setHeight(window.innerHeight);
+                    canvas.renderAll();
+                });
+
+                // Function to export the HTML and canvas as an image
+                document.getElementById('exportBtn').addEventListener('click', () => {
+                    // First capture the HTML content with html2canvas
+                    html2canvas(document.querySelector('.content')).then(htmlCanvas => {
+                        // Create an off-screen canvas to merge both HTML content and drawing canvas
+                        const finalCanvas = document.createElement('canvas');
+                        finalCanvas.width = htmlCanvas.width;
+                        finalCanvas.height = htmlCanvas.height;
+                        const ctx = finalCanvas.getContext('2d');
+
+                        // Draw the HTML content onto the final canvas
+                        ctx.drawImage(htmlCanvas, 0, 0);
+
+                        // Then export the Fabric.js canvas as an image and draw it on top
+                        const fabricCanvasImage = canvas.toDataURL();
+                        const img = new Image();
+                        img.src = fabricCanvasImage;
+                        img.onload = () => {
+                            // Draw the Fabric.js drawing canvas on top of the HTML content
+                            ctx.drawImage(img, 0, 0);
+
+                            // Convert the final combined canvas to a downloadable image
+                            const finalImage = finalCanvas.toDataURL("image/png");
+
+                            // Create a link to download the image
+                            const link = document.createElement('a');
+                            link.href = finalImage;
+                            link.download = 'exported-image.png';
+                            link.click();
+                        };
+                    });
+                });
+            </script>
+        </body>
+        </html>
+    `;
+}
 export function deactivate() { }
