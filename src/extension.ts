@@ -223,6 +223,7 @@ function getWebviewContent(htmlContent: string): string {
                 .content {
                     position: relative;
                     z-index: 1;
+                    padding-top: 60px; /* Ensure buttons don't overlap the content */
                 }
                 .canvas-container {
                     position: absolute;
@@ -237,19 +238,24 @@ function getWebviewContent(htmlContent: string): string {
                     height: 100%;
                     border: none;
                 }
-                #exportBtn {
+                .controls {
                     position: fixed;
                     top: 10px;
-                    right: 10px;
-                    z-index: 9999; /* Make sure the button is always on top */
-                    padding: 10px 20px;
+                    left: 10px;
+                    z-index: 9999;
+                    display: flex;
+                    flex-direction: row; /* Display in a row */
+                    gap: 10px; /* Add space between controls */
+                }
+                .controls button, .controls input, .controls select {
+                    padding: 10px;
                     background-color: #4CAF50;
                     color: white;
                     border: none;
                     border-radius: 5px;
                     cursor: pointer;
                 }
-                #exportBtn:hover {
+                .controls button:hover {
                     background-color: #45a049;
                 }
             </style>
@@ -261,7 +267,15 @@ function getWebviewContent(htmlContent: string): string {
             <div class="canvas-container">
                 <canvas id="canvas"></canvas>
             </div>
-            <button id="exportBtn">Export as Image</button>
+            <div class="controls">
+                <button id="exportBtn">Export as Image</button>
+                <input type="color" id="colorPicker" value="#000000">
+                <select id="shapePicker">
+                    <option value="draw">Draw</option>
+                    <option value="rectangle">Rectangle</option>
+                    <option value="circle">Circle</option>
+                </select>
+            </div>
 
             <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/4.5.0/fabric.min.js"></script>
             <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.5.0-beta4/html2canvas.min.js"></script>
@@ -281,31 +295,50 @@ function getWebviewContent(htmlContent: string): string {
                     canvas.renderAll();
                 });
 
-                // Function to export the HTML and canvas as an image
+                // Change pen color
+                document.getElementById('colorPicker').addEventListener('change', function() {
+                    canvas.freeDrawingBrush.color = this.value;
+                });
+
+                // Shape drawing
+                document.getElementById('shapePicker').addEventListener('change', function() {
+                    canvas.isDrawingMode = this.value === 'draw';
+                    if (this.value === 'rectangle') {
+                        const rect = new fabric.Rect({
+                            left: 100,
+                            top: 100,
+                            fill: canvas.freeDrawingBrush.color,
+                            width: 200,
+                            height: 100
+                        });
+                        canvas.add(rect);
+                    } else if (this.value === 'circle') {
+                        const circle = new fabric.Circle({
+                            left: 150,
+                            top: 150,
+                            radius: 50,
+                            fill: canvas.freeDrawingBrush.color
+                        });
+                        canvas.add(circle);
+                    }
+                });
+
+                // Export the combined HTML and canvas as an image
                 document.getElementById('exportBtn').addEventListener('click', () => {
-                    // First capture the HTML content with html2canvas
                     html2canvas(document.querySelector('.content')).then(htmlCanvas => {
-                        // Create an off-screen canvas to merge both HTML content and drawing canvas
                         const finalCanvas = document.createElement('canvas');
                         finalCanvas.width = htmlCanvas.width;
                         finalCanvas.height = htmlCanvas.height;
                         const ctx = finalCanvas.getContext('2d');
 
-                        // Draw the HTML content onto the final canvas
                         ctx.drawImage(htmlCanvas, 0, 0);
 
-                        // Then export the Fabric.js canvas as an image and draw it on top
                         const fabricCanvasImage = canvas.toDataURL();
                         const img = new Image();
                         img.src = fabricCanvasImage;
                         img.onload = () => {
-                            // Draw the Fabric.js drawing canvas on top of the HTML content
                             ctx.drawImage(img, 0, 0);
-
-                            // Convert the final combined canvas to a downloadable image
                             const finalImage = finalCanvas.toDataURL("image/png");
-
-                            // Create a link to download the image
                             const link = document.createElement('a');
                             link.href = finalImage;
                             link.download = 'exported-image.png';
@@ -318,4 +351,5 @@ function getWebviewContent(htmlContent: string): string {
         </html>
     `;
 }
+
 export function deactivate() { }
